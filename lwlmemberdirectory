@@ -1,0 +1,103 @@
+import React, { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+import "tailwindcss/tailwind.css";
+
+const ADMIN_PHONE = "8431068927";
+
+const App = () => {
+  const [view, setView] = useState(null);
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [photo, setPhoto] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [bio, setBio] = useState("");
+  const [members, setMembers] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const storedMembers = JSON.parse(localStorage.getItem("members")) || [];
+    setMembers(storedMembers);
+  }, []);
+
+  const handleSignUp = () => {
+    if (bio.length > 180) {
+      setError("Bio cannot exceed 180 characters.");
+      return;
+    }
+
+    if (members.some((member) => member.phone === phone)) {
+      setError("You can only enter your details once.");
+      return;
+    }
+
+    const newMember = { id: uuidv4(), phone, name, photo, designation, bio };
+    const updatedMembers = [...members, newMember].filter(m => m.phone !== ADMIN_PHONE);
+    localStorage.setItem("members", JSON.stringify(updatedMembers));
+    setMembers(updatedMembers);
+    setView("directory");
+  };
+
+  const handleDelete = (id) => {
+    if (phone !== ADMIN_PHONE) {
+      setError("Only admin can delete records.");
+      return;
+    }
+    const updatedMembers = members.filter((member) => member.id !== id);
+    localStorage.setItem("members", JSON.stringify(updatedMembers));
+    setMembers(updatedMembers);
+  };
+
+  return (
+    <div className="bg-red-50 min-h-screen flex flex-col items-center p-8">
+      {!view && (
+        <div className="space-y-4">
+          <button onClick={() => setView("signup")} className="bg-red-500 text-white px-4 py-2 rounded">Sign Up</button>
+          <button onClick={() => setView("directory")} className="bg-white border border-red-500 text-red-500 px-4 py-2 rounded">View Directory</button>
+        </div>
+      )}
+
+      {view === "signup" && (
+        <div className="bg-white p-6 rounded shadow-md w-96">
+          <h2 className="text-xl font-bold text-red-600">Sign Up</h2>
+          <input type="tel" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="border p-2 w-full mt-2" />
+          <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="border p-2 w-full mt-2" />
+          <input type="url" placeholder="Photo URL" value={photo} onChange={(e) => setPhoto(e.target.value)} className="border p-2 w-full mt-2" />
+          <input type="text" placeholder="Designation" value={designation} onChange={(e) => setDesignation(e.target.value)} className="border p-2 w-full mt-2" />
+          <textarea placeholder="Short Bio (max 180 chars)" value={bio} onChange={(e) => setBio(e.target.value)} className="border p-2 w-full mt-2" maxLength="180"></textarea>
+          {error && <p className="text-red-500 mt-2">{error}</p>}
+          <button onClick={handleSignUp} className="bg-red-500 text-white px-4 py-2 rounded mt-4 w-full">Submit</button>
+        </div>
+      )}
+
+      {view === "directory" && (
+        <div className="w-full max-w-2xl">
+          <h2 className="text-xl font-bold text-red-600 text-center">LWL Venture Vault 3.0</h2>
+          <p className="text-gray-600 text-center mb-4">Know who else is in the room</p>
+          <div className="bg-white shadow-md p-4 rounded">
+            {members.length === 0 ? (
+              <p className="text-gray-500">No members yet.</p>
+            ) : (
+              [...members].sort((a, b) => a.name.localeCompare(b.name)).map((member) => (
+                <div key={member.id} className="flex items-center justify-between border-b py-2">
+                  <div className="flex items-center space-x-4">
+                    <img src={member.photo} alt={member.name} className="w-12 h-12 rounded-full" />
+                    <div>
+                      <p className="font-bold">{member.name}</p>
+                      <p className="text-sm text-gray-600">{member.designation}</p>
+                      <p className="text-xs text-gray-500">{member.bio}</p>
+                    </div>
+                  </div>
+                  {phone === ADMIN_PHONE && (
+                    <button onClick={() => handleDelete(member.id)} className="text-red-500">Delete</button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
